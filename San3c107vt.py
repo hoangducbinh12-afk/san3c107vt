@@ -4,8 +4,8 @@ import json
 import numpy as np
 import re
 
-# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM CYBERPUNK V20.0 ---
-st.set_page_config(page_title="Matrix 3D - Counter Strike V20.0", layout="wide")
+# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM CYBERPUNK V21.0 ---
+st.set_page_config(page_title="Matrix 3D - Absolute Strike V21.0", layout="wide")
 TOTAL_POS = 107 
 
 st.markdown("""
@@ -16,15 +16,18 @@ st.markdown("""
     
     .box-cang3d { background-color: #05070B; padding: 12px; border-radius: 12px; border: 2px solid #A855F7; margin-bottom: 12px; }
     .box-blacklist { background-color: #0F0305; padding: 12px; border-radius: 12px; border: 2px solid #EF4444; margin-bottom: 12px; }
-    .box-survived { background-color: #020C08; padding: 15px; border-radius: 12px; border: 3px solid #10B981; margin-bottom: 15px; }
+    .box-survived { background-color: #020C08; padding: 15px; border-radius: 12px; border: 3px solid #10B981; margin-bottom: 12px; }
+    .box-absolute2d { background-color: #06152D; padding: 15px; border-radius: 12px; border: 3px solid #3B82F6; margin-bottom: 15px; }
     
     .title-cang3d { color: #A855F7 !important; font-size: 15px !important; font-weight: 900 !important; }
     .title-blacklist { color: #EF4444 !important; font-size: 15px !important; font-weight: 900 !important; }
     .title-survived { color: #10B981 !important; font-size: 16px !important; font-weight: 900 !important; }
+    .title-absolute2d { color: #3B82F6 !important; font-size: 16px !important; font-weight: 900 !important; }
     
     .text-cang3d { color: #E2E8F0 !important; font-size: 16px !important; font-weight: bold; font-family: monospace; letter-spacing: 2px; line-height: 1.4; word-wrap: break-word; }
     .text-blacklist { color: #94A3B8 !important; font-size: 15px !important; font-family: monospace; letter-spacing: 1px; word-wrap: break-word; }
     .text-survived { color: #FFD700 !important; font-size: 26px !important; font-weight: 900 !important; font-family: monospace; letter-spacing: 4px; line-height: 1.5; word-wrap: break-word; }
+    .text-absolute2d { color: #00F5FF !important; font-size: 28px !important; font-weight: 900 !important; font-family: monospace; letter-spacing: 5px; line-height: 1.5; word-wrap: break-word; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -34,11 +37,11 @@ if 'db_3d' not in st.session_state:
         "wire_matrix_3d": np.zeros((TOTAL_POS, TOTAL_POS, TOTAL_POS), dtype=int).tolist(),
         "last_digits": "",
         "history": [],
-        "last_predictions_groups": {},
-        "all_cang3c_2đ_plus_raw": [], # Két chứa TOÀN BỘ ánh xạ từ dây 2đ trở lên (Không lọc độc quyền)
-        "last_survived_predictions": [] # Lưu dàn sống sót hôm qua để hôm sau đối soát nháy nổ
+        "last_predictions_groups": "",
+        "all_cang3c_2đ_plus_raw": [], 
+        "last_survived_predictions": [],
+        "absolute_2d_clean_list": [] # Lưu dàn 2D sạch tuyệt đối của kỳ này
     }
-if 'raw_input' not in st.session_state: st.session_state['raw_input'] = ""
 
 # --- 🛠️ BỘ GIẢI MÃ CẤU TRÚC BẢNG GIẢI WEB THÔNG MINH ---
 def parse_vietnam_xsmb_format(raw_text):
@@ -79,29 +82,24 @@ def parse_vietnam_xsmb_format(raw_text):
     cang3c_23_list = [num[-3:] for num in all_27_components[:23] if len(num) >= 3]
     return digits_107, loto_27_list, cang3c_23_list
 
-# --- 3. ĐỘNG CƠ MA TRẬN TENSOR 3D - THU THẬP TẤT CẢ ÁNH XẠ DÂY >= 2Đ ---
+# --- 3. ĐỘNG CƠ MA TRẬN TENSOR 3D - THU THẬP KHO ĐEN & TRÍCH XUẤT 2D TUYỆT ĐIỆT ---
 def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     db = st.session_state['db_3d']
     
     old_matrix = np.array(db["wire_matrix_3d"], dtype=int)
     old_digits = db["last_digits"]
     old_preds = db.get("last_predictions_groups", {})
-    old_survived_cang = db.get("last_survived_predictions", []) # Dàn lọc động sống sót hôm qua
+    old_survived_cang = db.get("last_survived_predictions", [])
     
-    # 🧠 BƯỚC 1: ĐỐI SOÁT TỰ ĐỘNG LỊCH SỬ KỲ TRƯỚC
+    # 🧠 BƯỚC 1: ĐỐI SOÁT LỊCH SỬ KỲ TRƯỚC
     hit_report = {"GĐB": gdb_val if gdb_val else "00"}
     if old_digits != "":
-        # 1. Đối soát riêng cho Dàn 3 Càng lọc ngược sống sót
         if old_survived_cang:
             matched_survived = [num for num in old_survived_cang if num in cang3c_23]
-            if matched_survived:
-                hit_report["💥 DÀN 3C NGƯỢC"] = f"🔥 HỐC {len(matched_survived)} NHÁY ({', '.join(matched_survived)})"
-            else:
-                hit_report["💥 DÀN 3C NGƯỢC"] = "Trượt"
-        else:
-            hit_report["💥 DÀN 3C NGƯỢC"] = "Trống"
+            if matched_survived: hit_report["💥 DÀN 3C NGƯỢC"] = f"🔥 HỐC {len(matched_survived)} NHÁY ({', '.join(matched_survived)})"
+            else: hit_report["💥 DÀN 3C NGƯỢC"] = "Trượt"
+        else: hit_report["💥 DÀN 3C NGƯỢC"] = "Trống"
 
-    # Đối soát các cột dàn thô đơn dây (vẫn giữ lại để theo dõi hệ thống)
     if old_preds:
         for group_name, group_data in old_preds.items():
             pred_list = group_data.get("list", [])
@@ -120,10 +118,10 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                     if num_past in cang3c_23: new_matrix[i][j][k] = old_matrix[i][j][k] + 1
                     else: new_matrix[i][j][k] = 0
 
-    # 🧠 BƯỚC 3: PHÂN LOẠI NHÓM ĐIỂM + THU HOẠCH TẬP HỢP TỬ HÌNH KHÔNG GIỚI HẠN
+    # 🧠 BƯỚC 3: PHÂN LOẠI NHÓM ĐIỂM + THU HOẠCH DANH SÁCH ĐEN KHÔNG GIỚI HẠN
     max_score = int(new_matrix.max())
     current_predictions = {}
-    blacklist_3d_accumulator = set() # Dùng Set để tự động gộp và loại bỏ con trùng trong danh sách đen
+    blacklist_3d_accumulator = set()
     
     if max_score >= 1:
         for s in range(1, max_score + 1):
@@ -136,11 +134,9 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                 num_cang = digits_107[r] + digits_107[c] + digits_107[l]
                 cang_frequency_in_group[num_cang] = cang_frequency_in_group.get(num_cang, 0) + 1
                 
-                # CHÍNH SÁCH MỚI: Cứ thuộc nhóm dây từ 2 điểm trở lên (s >= 2) là tống hết vào danh sách đen phá hủy số
                 if s >= 2:
                     blacklist_3d_accumulator.add(num_cang)
                     
-            # Trích xuất dàn thô đơn dây nguyên thủy phục vụ theo dõi đối chiếu
             unique_cang_list = [cang for cang, freq in cang_frequency_in_group.items() if freq == 1]
             if unique_cang_list:
                 current_predictions[f"{s} đ"] = {
@@ -148,11 +144,30 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                     "list": sorted(unique_cang_list)
                 }
 
+    # 🧠 BƯỚC 4: 🛠️ 🛠️ THUẬT TOÁN TRÍCH XUẤT 2D TUYỆT ĐIỆT THEO Ý MÀY
+    blacklist_list = list(blacklist_3d_accumulator)
+    absolute_2d_clean = []
+    
+    # Duyệt qua toàn bộ không gian mẫu loto 2 số từ 00 đến 99
+    for i in range(100):
+        loto_2s = str(i).zfill(2)
+        # Kiểm tra xem có đầu càng nào dính vào danh sách đen không
+        has_black_cang = False
+        for cang_digit in range(10):
+            test_3c = f"{cang_digit}{loto_2s}"
+            if test_3c in blacklist_list:
+                has_black_cang = True
+                break
+        # Nếu CẢ 10 ĐẦU CÀNG đều không nằm trong tập hợp 3D >= 2đ -> Sạch tuyệt đối!
+        if not has_black_cang:
+            absolute_2d_clean.append(loto_2s)
+
     # Đồng bộ kho trạng thái ẩn trên RAM
     db["wire_matrix_3d"] = new_matrix.tolist()
     db["last_digits"] = digits_107
     db["last_predictions_groups"] = current_predictions
-    db["all_cang3c_2đ_plus_raw"] = sorted(list(blacklist_3d_accumulator)) # Lưu toàn bộ kho đen
+    db["all_cang3c_2đ_plus_raw"] = sorted(blacklist_list)
+    db["absolute_2d_clean_list"] = sorted(absolute_2d_clean) # Găm dàn 2D siêu sạch lại
     
     if old_digits != "": db["history"].insert(0, hit_report)
     else:
@@ -160,7 +175,7 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
         db["history"].insert(0, hit_report)
 
 # --- 4. GIAO DIỆN ĐIỀU HÀNH CONTROL PANEL SIDEBAR ---
-st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ MATRIX 3D - COUNTER STRIKE OPERATOR v20.0</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ MATRIX 3D - ABSOLUTE ELIMINATION v21.0</h2>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### 💾 HỆ THỐNG DỮ LIỆU TENSOR")
@@ -169,20 +184,28 @@ with st.sidebar:
         st.session_state['db_3d'] = json.load(uploaded_file)
         st.rerun()
     if st.session_state['db_3d']['last_digits']:
-        st.download_button("💾 XUẤT FILE SAO LƯU JSON", json.dumps(st.session_state['db_3d']), "matrix_3d_v200.json")
+        st.download_button("💾 XUẤT FILE SAO LƯU JSON", json.dumps(st.session_state['db_3d']), "matrix_3d_v210.json")
         
     st.divider()
     st.markdown("### 📥 TRẠM NẠP KẾT QUẢ KỲ QUAY")
-    st.session_state['raw_input'] = st.text_area("Dán bảng giải thô chuẩn từ Web:", value=st.session_state.get('raw_input', ""), height=200)
+    
+    # Khởi tạo khóa tạm thời để bốc tách dữ liệu nhập vào ô giải thô
+    raw_input_text = st.text_area("Dán bảng giải thô chuẩn từ Web:", key="web_raw_field", height=200)
     
     if st.button("🔥 KHAI HỎA SNIPER TENSOR 3D", type="primary"):
-        digits_107, loto_27, cang3c_23 = parse_vietnam_xsmb_format(st.session_state['raw_input'])
-        if digits_107 and len(digits_107) == TOTAL_POS:
-            gdb_val = digits_107[3:5]
-            process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val)
-            st.rerun()
+        if raw_input_text:
+            digits_107, loto_27, cang3c_23 = parse_vietnam_xsmb_format(raw_text=raw_input_text)
+            if digits_107 and len(digits_107) == TOTAL_POS:
+                gdb_val = digits_107[3:5]
+                process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val)
+                
+                # 🛠️ 🛠️ HẠ LỆNH TIÊU HỦY BIẾN CHỮ: Làm cho bảng số copy vào tự động biến mất!
+                st.toast("🔥 Đã băm nhỏ ma trận, xóa dấu vết bảng giải thành công!", icon="🧹")
+                st.rerun()
+            else:
+                st.error("Lỗi cấu trúc bảng giải dán vào!")
         else:
-            st.error("Lỗi cấu trúc bảng giải dán vào!")
+            st.warning("Ô dán bảng giải đang trống!")
             
     if st.button("🚨 XÓA TRẮNG BẢNG TẠM"):
         st.session_state.clear()
@@ -192,34 +215,47 @@ with st.sidebar:
 st.markdown("<h3><font color='#10B981'><b>👑 TRẠM BẮN TỈA 3 CÀNG THEO CHIẾN THUẬT LOẠI TRỪ</b></font></h3>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 1px solid #10B981; margin-top: -5px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
-blacklist_3d_gốc = st.session_state['db_3d'].get("all_cang3c_2đ_plus_raw", [])
+# 👑 CỘT MỐC MỚI: XUẤT BẢN DÀN LOTO 2D SIÊU TINH KHIẾT SẠCH BÓNG AN TỬ HÌNH 3D
+absolute_2d_list = st.session_state['db_3d'].get("absolute_2d_clean_list", [])
+if absolute_2d_list:
+    total_abs_2d = len(absolute_2d_list)
+    abs_2d_str = "   -   ".join(absolute_2d_list)
+    st.markdown(f"""
+        <div class="box-absolute2d">
+            <span class="title-absolute2d">💎 DÀN 2D SẠCH TUYỆT ĐỐI (Cả 10 đầu Càng đều không nằm trong tập sụp đổ 3D -> Còn lại: {total_abs_2d} quân)</span><br>
+            <p class="text-absolute2d">{abs_2d_str}</p>
+        </div>
+        """, unsafe_allow_html=True)
+else:
+    if st.session_state['db_3d']['last_digits'] != "":
+        st.markdown("""
+            <div class="box-absolute2d" style="border-color:#EF4444;">
+                <span class="title-absolute2d" style="color:#EF4444 !important;">💎 DÀN 2D SẠCH TUYỆT ĐỐI (Tổng lực: 0 quân)</span><br>
+                <p class="text-absolute2d" style="color:#94A3B8 !important; font-size:16px;">Kỳ này ma trận sụp đổ quá dày đặc, toàn bộ 100 con lô 2D đều dính líu ít nhất 1 đầu Càng chết!</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-# Luôn hiển thị trạng thái tổng số lượng "Tử tù 3D" để mày nắm bắt độ loãng ma trận
+blacklist_3d_gốc = st.session_state['db_3d'].get("all_cang3c_2đ_plus_raw", [])
 total_black = len(blacklist_3d_gốc)
 
-# 🛠️ Ô NHẬP DÀN SỐ ĐỀ/LÔ 2D CẦU SOI TẠI TRUNG TÂM MÀN HÌNH MÀY YÊU CẦU
+# Ô nhập dàn số 2D cần soi động
 st.markdown("#### 📥 NHẬP DÀN SỐ LOTO/ĐỀ 2D CẦU SOI VÀO ĐÂY ĐỂ ĐỘT PHÁ CÀNG CHỐNG TRÙNG:")
-input_dynamic_2d = st.text_input("Gõ hoặc dán dàn loto 2D chiến lược (Ví dụ: 12, 34, 56...):", key="dynamic_loto_strike")
+input_dynamic_2d = st.text_input("Gõ hoặc dán dàn loto 2D chiến lược (Ví dụ: 12, 34, 56...):", key="dynamic_loto_strike_v21")
 
 parsed_dynamic_2d = [n.strip() for n in input_dynamic_2d.replace(",", " ").split() if n.isdigit()]
 
 if parsed_dynamic_2d:
-    # 🧠 THUẬT TOÁN COUNTER-STRIKE: 
-    # 1. Dựng lưới thô đầy đủ 10 đầu càng (từ 0 đến 9) ứng với tất cả các số 2D nhập vào
     grid_3c_thô = []
     for loto_2s in parsed_dynamic_2d:
         loto_clean = loto_2s.zfill(2)
         for càng_digit in range(10):
             grid_3c_thô.append(f"{càng_digit}{loto_clean}")
             
-    # 2. KIỂM TRA ĐIỀU KIỆN CHỐNG TRÙNG TUYỆT ĐỐI: Con nào CÓ trong tập hợp đen -> LOẠI. Con nào KHÔNG CÓ -> HIỂN THỊ
     survived_3c_list = [cang for cang in grid_3c_thô if cang not in blacklist_3d_gốc]
     total_survived = len(survived_3c_list)
     
-    # Đồng bộ lưu lại dàn sống sót này vào bộ nhớ để ngày mai so nháy tự động ở bảng lịch sử
     st.session_state['db_3d']["last_survived_predictions"] = survived_3c_list
     
-    # In kết quả rực rỡ lên màn hình trung tâm
     if survived_3c_list:
         survived_str = "   -   ".join(survived_3c_list)
         st.markdown(f"""
@@ -231,7 +267,6 @@ if parsed_dynamic_2d:
     else:
         st.error("🚨 Toàn bộ các đầu càng của dàn 2D này đều bị dính líu nằm trọn trong danh sách dây sụp đổ! Không còn con nào sống sót.")
 else:
-    # Nếu chưa nhập loto 2D, nhắc nhở găm số
     st.info("💡 Vui lòng nhập dàn số 2D cần soi vào ô trên. Hệ thống sẽ ngay lập tức đối chiếu với kho dây sụp đổ để khạc số càng sạch!")
 
 # Hiển thị khối thông tin danh sách đen bên dưới để mày đối chiếu trực quan
@@ -275,11 +310,11 @@ if hist_data:
     
     def highlight_wins(val):
         val_str = str(val)
-        if "🔥 HỐC" in val_str: # Ăn 3 càng lọc ngược nổ rực rỡ màu Cam lửa viền đỏ cực ngầu
+        if "🔥 HỐC" in val_str:
             return 'background-color: #451A03; color: #F97316; font-weight: 900; border: 2px solid #F97316;'
-        elif "nháy" in val_str: # Ăn các giải dàn thô giữ màu xanh lục
+        elif "nháy" in val_str:
             return 'background-color: #1F2937; color: #10B981; font-weight: 900; border: 1px solid #10B981;'
-        elif val_str in ["Trượt", "0"]: return 'color: #4B5563; font-weight: normal;'
+        elif val_str in ["Trượt", "❌ Trượt", "0"]: return 'color: #4B5563; font-weight: normal;'
         return ''
 
     st.dataframe(df_hist[cols].style.map(highlight_wins), use_container_width=True, height=450)
