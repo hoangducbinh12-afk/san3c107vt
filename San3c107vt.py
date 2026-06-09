@@ -6,8 +6,8 @@ import numpy as np
 import re
 import io
 
-# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V25.0 ---
-st.set_page_config(page_title="Matrix 3D - Touch Master V25.0", layout="wide")
+# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V25.1 ---
+st.set_page_config(page_title="Matrix 3D - Touch Master V25.1", layout="wide")
 TOTAL_POS = 107 
 
 st.markdown("""
@@ -27,7 +27,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Khởi tạo dữ liệu gối đầu RAM Session V25.0
+# Khởi tạo dữ liệu gối đầu RAM Session V25.1
 if 'db_3d' not in st.session_state:
     st.session_state['db_3d'] = {
         "wire_matrix_3d": np.zeros((TOTAL_POS, TOTAL_POS, TOTAL_POS), dtype=int).tolist(),
@@ -53,12 +53,11 @@ KEP_GANH_280 = [
 # Hàm lập dàn 280 con dựa theo bộ lọc nén chữ số (Chạm)
 def generate_k_g_by_touches(touches):
     touch_set = set(str(t) for t in touches)
-    result_ dàn = []
+    result_dan = [] # 🛠️ FIX DÒNG NÀY: Xóa chữ "dàn" dính dấu cách gây SyntaxError
     for num in KEP_GANH_280:
-        # Kiểm tra xem TẤT CẢ các chữ số của con số này có nằm trong bộ chạm không
         if all(char in touch_set for char in num):
-            result_ dàn.append(num)
-    return sorted(result_ dàn)
+            result_dan.append(num)
+    return sorted(result_dan)
 
 # --- 2. BỘ GIẢI MÃ CẤU TRÚC BẢNG GIẢI WEB THÔNG MINH ---
 def parse_vietnam_xsmb_format(raw_text):
@@ -99,7 +98,7 @@ def parse_vietnam_xsmb_format(raw_text):
     cang3c_23_list = [num[-3:] for num in all_27_components[:23] if len(num) >= 3]
     return digits_107, loto_27_list, cang3c_23_list
 
-# --- 3. ĐỘNG CƠ MA TRẬN QUÉT CHẠM VÀ PHÂN TÁCH 4 DÀN CHIẾN THUẬT V25.0 ---
+# --- 3. ĐỘNG CƠ MA TRẬN QUÉT CHẠM VÀ PHÂN TÁCH 4 DÀN CHIẾN THUẬT V25.1 ---
 def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     db = st.session_state['db_3d']
     
@@ -107,7 +106,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     old_digits = db["last_digits"]
     old_lab_preds = db.get("last_lab_predictions", {})
     
-    # 🧠 BƯỚC 1: ĐỐI SOÁT TỰ ĐỘNG KỲ TRƯỚC THEO ĐÚNG 4 DÀN CHẠM CHIẾN THUẬT
     hit_report = {"GĐB": gdb_val if gdb_val else "00"}
     
     if old_digits != "" and old_lab_preds:
@@ -127,7 +125,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
             else:
                 hit_report[column_name] = "0"
                 
-    # 🧠 BƯỚC 2: CĂNG MA TRẬN PHẲNG VÀ UPDATE ĐIỂM SỢI DÂY
     new_matrix = np.zeros((TOTAL_POS, TOTAL_POS, TOTAL_POS), dtype=int)
     if len(old_digits) == TOTAL_POS:
         for i in range(TOTAL_POS):
@@ -139,9 +136,8 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                     else: 
                         new_matrix[i][j][k] = 0
 
-    # 🧠 BƯỚC 3: TRIỂN KHAI PHƯƠNG ÁN LỌC CHẠM TOÀN DIỆN
-    touch_score_pa1 = {str(i): 0 for i in range(10)}  # PA1: Tổng điểm tụ sợi dây
-    touch_score_pa2 = {str(i): 0 for i in range(10)}  # PA2: Đếm tần suất đơn dây độc quyền
+    touch_score_pa1 = {str(i): 0 for i in range(10)}  
+    touch_score_pa2 = {str(i): 0 for i in range(10)}  
     
     frequency_in_1đ = {}
     frequency_in_2đ = {}
@@ -152,18 +148,15 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                 num_cang = digits_107[i] + digits_107[j] + digits_107[k]
                 score = new_matrix[i][j][k]
                 
-                # --- THUẬT TOÁN PHƯƠNG ÁN 1: RỐN CẦU TỤ NĂNG LƯỢNG ---
                 if score >= 1:
-                    for char in set(num_cang):  # Tách các chữ số đơn lẻ cấu thành số 3 càng
+                    for char in set(num_cang):  
                         touch_score_pa1[char] += int(score)
                         
-                # Tích lũy để chuẩn bị chạy cho bộ lọc Độc quyền của Phương án 2
                 if score == 1:
                     frequency_in_1đ[num_cang] = frequency_in_1đ.get(num_cang, 0) + 1
                 elif score == 2:
                     frequency_in_2đ[num_cang] = frequency_in_2đ.get(num_cang, 0) + 1
 
-    # --- THUẬT TOÁN PHƯƠNG ÁN 2: LỰC NÉN ĐỘC QUYỀN ĐƠN DÂY ---
     d6_unique = [cang for cang, freq in frequency_in_1đ.items() if freq == 1]
     d7_unique = [cang for cang, freq in frequency_in_2đ.items() if freq == 1]
     all_unique_3c = d6_unique + d7_unique
@@ -172,49 +165,43 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
         for char in set(num):
             touch_score_pa2[char] += 1
 
-    # 🧠 BƯỚC 4: SẮP XẾP VÀ TRÍCH XUẤT CHẠM TUYỆT ĐỐI
-    # Sắp xếp PA1
     sorted_pa1 = sorted(touch_score_pa1.items(), key=lambda x: x[1], reverse=True)
     pa1_high_touches = [item[0] for item in sorted_pa1[:4]]
     pa1_low_touches = [item[0] for item in sorted_pa1[-4:]]
     
-    # Sắp xếp PA2
     sorted_pa2 = sorted(touch_score_pa2.items(), key=lambda x: x[1], reverse=True)
     pa2_high_touches = [item[0] for item in sorted_pa2[:4]]
     pa2_low_touches = [item[0] for item in sorted_pa2[-4:]]
 
-    # 🧠 BƯỚC 5: ÉP DÀN 280 CON THEO CHẠM MỤC TIÊU KHẠC RA 4 DÀN CHIẾN THUẬT
     d1_list = generate_k_g_by_touches(pa1_high_touches)
     d2_list = generate_k_g_by_touches(pa1_low_touches)
     d3_list = generate_k_g_by_touches(pa2_high_touches)
     d4_list = generate_k_g_by_touches(pa2_low_touches)
 
-    # Đóng gói két bảo mật RAM
     db["last_lab_predictions"] = {
         "pa1_high_txt": ", ".join(pa1_high_touches),
         "pa1_low_txt": ", ".join(pa1_low_touches),
         "pa2_high_txt": ", ".join(pa2_high_touches),
         "pa2_low_txt": ", ".join(pa2_low_touches),
         
-        "d1_0đ_high": pa1_high_touches, # Giữ gốc để hiển thị
+        "d1_0đ_high": pa1_high_touches, 
         "d1_pa1_high": d1_list,
         "d2_pa1_low": d2_list,
         "d3_pa2_high": d3_list,
         "d4_pa2_low": d4_list
     }
 
-    # Đồng bộ bộ nhớ ma trận Tensor
     db["wire_matrix_3d"] = new_matrix.tolist()
     db["last_digits"] = digits_107
     
     if old_digits != "" and old_lab_preds: 
         db["history"].insert(0, hit_report)
     else:
-        hit_report["Ghi chú"] = "⚙️ Kỳ khởi tạo ma trận chốt chạm V25.0"
+        hit_report["Ghi chú"] = "⚙️ Kỳ khởi tạo ma trận chốt chạm V25.1"
         db["history"].insert(0, hit_report)
 
 # --- 4. GIAO DIỆN ĐIỀU HÀNH CONTROL PANEL SIDEBAR ---
-st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - TOUCH MASTER v25.0</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - TOUCH MASTER v25.1</h2>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### 💾 HỆ THỐNG DỮ LIỆU TENSOR")
@@ -228,7 +215,7 @@ with st.sidebar:
                     st.session_state['db_3d'] = json.loads(f.read().decode("utf-8"))
             else:
                 st.session_state['db_3d'] = json.load(uploaded_file)
-            st.success("Đã hồi sinh trạm lọc chạm V25.0 thành công!")
+            st.success("Đã hồi sinh trạm lọc chạm V25.1 thành công!")
             st.rerun()
         except Exception as e:
             st.error(f"Lỗi tệp cấu trúc nhị phân: {e}")
@@ -267,8 +254,8 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# --- 5. KHU VỰC BẢNG NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN (ĐƯA LÊN ĐẦU TIỀN TUYẾN) ---
-st.markdown("<h3><font color='#10B981'><b>📋 NHẬT KÝ ĐỐI SOÁT SỐ QUÂN ĂN CỦA 4 DÀN CHẠM KÉP GÁNH V25.0</b></font></h3>", unsafe_allow_html=True)
+# --- 5. KHU VỰC BẢNG NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN ---
+st.markdown("<h3><font color='#10B981'><b>📋 NHẬT KÝ ĐỐI SOÁT SỐ QUÂN ĂN CỦA 4 DÀN CHẠM KÉP GÁNH V25.1</b></font></h3>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 1px solid #10B981; margin-top: -5px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
 hist_data = st.session_state['db_3d'].get("history", [])
