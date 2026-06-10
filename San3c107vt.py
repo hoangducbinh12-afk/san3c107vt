@@ -6,8 +6,8 @@ import numpy as np
 import re
 import io
 
-# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V27.1 ---
-st.set_page_config(page_title="Matrix 3D - Tensor Purify V27.1", layout="wide")
+# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V27.2 ---
+st.set_page_config(page_title="Matrix 3D - Tensor Purify V27.2", layout="wide")
 TOTAL_POS = 107 
 
 st.markdown("""
@@ -38,28 +38,18 @@ if 'db_3d' not in st.session_state:
         "last_lab_predictions": {} 
     }
 
-# 🛠️ NÂNG CẤP TOÁN TỔ HỢP: Tự động lập bộ 280 con bằng thuật toán, loại bỏ 100% lỗi gõ tay trùng số!
+# 🛠️ TOÁN TỔ HỢP: Tự động lập bộ hằng số 280 con chuẩn đét từ thuật toán
 @st.cache_data
 def get_pure_kep_ganh_280():
     pure_list = []
     for i in range(1000):
         num_str = str(i).zfill(3)
-        # Nếu số lượng chữ số độc nhất (Unique characters) từ 1 đến 2 -> Thuộc bộ của đại ca
         if 1 <= len(set(num_str)) <= 2:
             pure_list.append(num_str)
     return pure_list
 
 KEP_GANH_280 = get_pure_kep_ganh_280()
 KEP_GANH_SET = set(KEP_GANH_280)
-
-# Hàm lập dàn 280 con dựa theo bộ lọc nén 3 chữ số (3 Chạm)
-def generate_k_g_by_touches(touches):
-    touch_set = set(str(t) for t in touches)
-    result_dan = []
-    for num in KEP_GANH_280:
-        if all(char in touch_set for char in num):
-            result_dan.append(num)
-    return sorted(result_dan)
 
 # --- 2. BỘ GIẢI MÃ CẤU TRÚC BẢNG GIẢI WEB THÔNG MINH ---
 def parse_vietnam_xsmb_format(raw_text):
@@ -100,7 +90,7 @@ def parse_vietnam_xsmb_format(raw_text):
     cang3c_23_list = [num[-3:] for num in all_27_components[:23] if len(num) >= 3]
     return digits_107, loto_27_list, cang3c_23_list
 
-# --- 3. ĐỘNG CƠ MA TRẬN PHÂN TÁCH SỢI DÂY TINH KHIẾT V27.1 ---
+# --- 3. ĐỘNG CƠ MA TRẬN PHÂN TÁCH SỢI DÂY TINH KHIẾT V27.2 ---
 def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     db = st.session_state['db_3d']
     old_matrix = st.session_state['matrix_np'] 
@@ -109,12 +99,15 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     
     hit_report = {"GĐB": gdb_val if gdb_val else "00"}
     
+    # 🛠️ FIX LOGIC ĐỐI SOÁT: Đồng bộ chuẩn khít 100% theo tên của 6 loại dàn mới
     if old_digits != "" and old_lab_preds:
         keys_mapping = {
-            "d1_pa1_high": "Dàn 1 (PA1-3ChạmCao)",
-            "d2_pa1_low": "Dàn 2 (PA1-3ChạmThấp)",
-            "d3_pa2_high": "Dàn 3 (PA2-3ChạmCao)",
-            "d4_pa2_low": "Dàn 4 (PA2-3ChạmThấp)"
+            "d1_0đ_uni": "Dàn 1 (0đ Độc Nhất)",
+            "d2_1đ_uni": "Dàn 2 (1đ Độc Nhất)",
+            "d3_2đ_uni": "Dàn 3 (2đ Độc Nhất)",
+            "d4_2đ_plus": "Dàn 4 (Dây >= 2đ)",
+            "d5_0đ_khan": "Dàn 5 (0đ Khan >5Ngày)",
+            "d6_overload": "Dàn 6 (Đa Dây Nhiễu)"
         }
         for internal_key, column_name in keys_mapping.items():
             pred_list = old_lab_preds.get(internal_key, [])
@@ -131,78 +124,82 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
             for j in range(TOTAL_POS):
                 for k in range(TOTAL_POS):
                     num_past = old_digits[i] + old_digits[j] + old_digits[k]
+                    # Thước ngắm tối cao 280 con chặn họng ma trận
                     if num_past in cang3c_23 and num_past in KEP_GANH_SET: 
                         new_matrix[i][j][k] = old_matrix[i][j][k] + 1
 
-    touch_score_pa1 = {str(i): 0 for i in range(10)}  
-    touch_score_pa2 = {str(i): 0 for i in range(10)}  
-    
-    frequency_in_1đ = {}
-    frequency_in_2đ = {}
-    
+    # Kho đếm số lượng sợi dây xuất hiện và điểm số
+    wire_score_registry = {num: [] for num in KEP_GANH_280}
+
     for i in range(TOTAL_POS):
         for j in range(TOTAL_POS):
             for k in range(TOTAL_POS):
                 num_cang = digits_107[i] + digits_107[j] + digits_107[k]
                 if num_cang in KEP_GANH_SET:
                     score = int(new_matrix[i][j][k])
-                    
-                    if score >= 1:
-                        for char in set(num_cang):  
-                            touch_score_pa1[char] += score
-                            
-                    if score == 1:
-                        frequency_in_1đ[num_cang] = frequency_in_1đ.get(num_cang, 0) + 1
-                    elif score == 2:
-                        frequency_in_2đ[num_cang] = frequency_in_2đ.get(num_cang, 0) + 1
+                    wire_score_registry[num_cang].append(score)
 
-    d6_unique = [cang for cang, freq in frequency_in_1đ.items() if freq == 1]
-    d7_unique = [cang for cang, freq in frequency_in_2đ.items() if freq == 1]
-    all_unique_3c = d6_unique + d7_unique
-    
-    for num in all_unique_3c:
-        for char in set(num):
-            touch_score_pa2[char] += 1
+    d1_0đ_uni = []   
+    d2_1đ_uni = []   
+    d3_2đ_uni = []   
+    d4_2đ_plus = []  
+    d6_overload = [] 
 
-    sorted_pa1 = sorted(touch_score_pa1.items(), key=lambda x: x[1], reverse=True)
-    pa1_high_touches = [item[0] for item in sorted_pa1[:3]]  
-    pa1_low_touches = [item[0] for item in sorted_pa1[-3:]]   
-    
-    sorted_pa2 = sorted(touch_score_pa2.items(), key=lambda x: x[1], reverse=True)
-    pa2_high_touches = [item[0] for item in sorted_pa2[:3]]  
-    pa2_low_touches = [item[0] for item in sorted_pa2[-3:]]   
-
-    d1_list = generate_k_g_by_touches(pa1_high_touches)
-    d2_list = generate_k_g_by_touches(pa1_low_touches)
-    d3_list = generate_k_g_by_touches(pa2_high_touches)
-    d4_list = generate_k_g_by_touches(pa2_low_touches)
-
-    db["last_lab_predictions"] = {
-        "pa1_high_txt": ", ".join(pa1_high_touches),
-        "pa1_low_txt": ", ".join(pa1_low_touches),
-        "pa2_high_txt": ", ".join(pa2_high_touches),
-        "pa2_low_txt": ", ".join(pa2_low_touches),
+    for num, score_list in wire_score_registry.items():
+        total_wires = len(score_list)
+        if total_wires == 0: continue
         
-        "d1_pa1_high": d1_list,
-        "d2_pa1_low": d2_list,
-        "d3_pa2_high": d3_list,
-        "d4_pa2_low": d4_list
+        # Lọc Độc Nhất đơn dây (xuất hiện đúng 1 lần độc quyền)
+        if total_wires == 1:
+            sc = score_list[0]
+            if sc == 0: d1_0đ_uni.append(num)
+            elif sc == 1: d2_1đ_uni.append(num)
+            elif sc == 2: d3_2đ_uni.append(num)
+            
+        if any(sc >= 2 for sc in score_list):
+            d4_2đ_plus.append(num)
+            
+        if total_wires > 15:
+            d6_overload.append(num)
+
+    # DÀN 5: Săn câm đóng băng trên 5 ngày
+    d5_0đ_khan = []
+    hist_len = len(db["history"])
+    if hist_len >= 5:
+        cang_appeared_in_5_days = set()
+        for h_day in db["history"][:5]:
+            saved_c3c = h_day.get("Saved_3C_Real", [])
+            for c in saved_c3c: cang_appeared_in_5_days.add(c)
+            
+        for num in KEP_GANH_280:
+            if num not in cang_appeared_in_5_days:
+                if num in wire_score_registry and all(sc == 0 for sc in wire_score_registry[num]):
+                    d5_0đ_khan.append(num)
+
+    # Đóng gói chuẩn khít 6 tầng dự đoán mới lên két bảo mật RAM
+    db["last_lab_predictions"] = {
+        "d1_0đ_uni": sorted(d1_0đ_uni),
+        "d2_1đ_uni": sorted(d2_1đ_uni),
+        "d3_2đ_uni": sorted(d3_2đ_uni),
+        "d4_2đ_plus": sorted(d4_2đ_plus),
+        "d5_0đ_khan": sorted(d5_0đ_khan),
+        "d6_overload": sorted(d6_overload)
     }
 
     st.session_state['matrix_np'] = new_matrix
     db["last_digits"] = digits_107
     
-    # Lưu mảng thực tế phục vụ đếm ngày khan
+    # Găm mảng thực tế để nuôi thuật toán đếm ngày khan dàn 5
     hit_report["Saved_3C_Real"] = cang3c_23
     
     if old_digits != "" and old_lab_preds: 
         db["history"].insert(0, hit_report)
     else:
-        hit_report["Ghi chú"] = "⚙️ Khởi tạo ma trận Purify V27.1"
+        hit_report["Ghi chú"] = "⚙️ Khởi tạo ma trận Purify V27.2"
         db["history"].insert(0, hit_report)
 
 # --- 4. GIAO DIỆN ĐIỀU HÀNH CONTROL PANEL SIDEBAR ---
-st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - TRI-TOUCH PURIFY v27.1</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - PURIFY PRO v27.2</h2>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### 💾 HỆ THỐNG DỮ LIỆU TENSOR")
@@ -214,7 +211,7 @@ with st.sidebar:
                 payload = json.loads(f.read().decode("utf-8"))
                 st.session_state['db_3d'] = payload["db_3d"]
                 st.session_state['matrix_np'] = np.array(payload["matrix_raw"], dtype=np.int32)
-            st.success("Đã hồi sinh trạm lọc siêu đặc Purify V27.1 chuẩn 280 con!")
+            st.success("Đã hồi sinh trạm lọc siêu đặc Purify V27.2!")
             st.rerun()
         except Exception as e:
             st.error(f"Lỗi cấu trúc RAM nhị phân: {e}")
@@ -232,7 +229,7 @@ with st.sidebar:
         st.download_button(
             label="💾 XUẤT FILE NÉN TỐI ƯU (.JSON.GZ)", 
             data=gzip_buffer.getvalue(), 
-            file_name="matrix_3d_v271.json.gz",
+            file_name="matrix_3d_v272.json.gz",
             mime="application/gzip"
         )
         
@@ -246,7 +243,7 @@ with st.sidebar:
             if digits_107 and len(digits_107) == TOTAL_POS:
                 gdb_val = digits_107[3:5]
                 process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val)
-                st.toast("🔥 Phân lập ma trận dây 3 chạm tinh khiết thành công!", icon="⚡")
+                st.toast("🔥 Đồng bộ băm dây 6 loại dàn tinh khiết thành công!", icon="⚡")
                 st.rerun()
             else:
                 st.error("Lỗi cấu trúc giải thô 107 số!")
@@ -257,8 +254,8 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# --- 5. KHU VỰC BẢNG NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN ---
-st.markdown("<h3><font color='#10B981'><b>📋 NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN 4 DÀN CHẠM CHIẾN THUẬT (CHUẨN 280 CON THƯỚC NGẮM)</b></font></h3>", unsafe_allow_html=True)
+# --- 5. KHU VỰC BẢNG NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN (ĐƯA LÊN ĐẦU TIỀN TUYẾN) ---
+st.markdown("<h3><font color='#10B981'><b>📋 NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN 6 DÀN PHÂN LỚP DÂY CÔ ĐỘC</b></font></h3>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 1px solid #10B981; margin-top: -5px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
 hist_data = st.session_state['db_3d'].get("history", [])
@@ -271,7 +268,7 @@ if hist_data:
     df_hist = pd.DataFrame(display_history).fillna("0")
     cols = list(df_hist.columns)
     
-    order_cols = ["GĐB", "Dàn 1 (PA1-3ChạmCao)", "Dàn 2 (PA1-3ChạmThấp)", "Dàn 3 (PA2-3ChạmCao)", "Dàn 4 (PA2-3ChạmThấp)"]
+    order_cols = ["GĐB", "Dàn 1 (0đ Độc Nhất)", "Dàn 2 (1đ Độc Nhất)", "Dàn 3 (2đ Độc Nhất)", "Dàn 4 (Dây >= 2đ)", "Dàn 5 (0đ Khan >5Ngày)", "Dàn 6 (Đa Dây Nhiễu)"]
     final_cols = [c for c in order_cols if c in cols] + [c for c in cols if c not in order_cols]
     
     def highlight_wins(val):
@@ -284,49 +281,48 @@ if hist_data:
 
     st.dataframe(df_hist[final_cols].style.map(highlight_wins), use_container_width=True, height=400)
 else:
-    st.info("Hệ thống ma trận siêu đặc V27.1 đã nạp RAM! Hãy dán giải kỳ sau để xuất bản đối soát quân ăn.")
+    st.info("Hệ thống ma trận siêu đặc V27.2 đã nạp RAM! Hãy dán giải kỳ sau để xuất bản đối soát quân ăn.")
 
 st.divider()
 
-# --- 6. KHU VỰC PHƠI BÀY CHI TIẾT 4 DÀN 3 CHẠM HIỆN TẠI ---
-st.markdown("<h3><font color='#A855F7'><b>🔮 BẢNG PHÂN LẬP TRÍCH XUẤT 3 CHẠM VÀ CÁC DÀN 21 CON KỲ NÀY</b></font></h3>", unsafe_allow_html=True)
+# --- 6. 🛠️ FIX TRIỆT ĐỂ: PHƠI BÀY CHÍNH XÁC CHI TIẾT ĐỦ ĐÚNG 6 LOẠI DÀN TRÊN WEB ---
+st.markdown("<h3><font color='#A855F7'><b>🔮 DANH SÁCH SỐ CHI TIẾT CỦA ĐÚNG 6 LOẠI DÀN THEO THƯỚC NGẮM</b></font></h3>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 1px solid #A855F7; margin-top: -5px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
 preds = st.session_state['db_3d'].get("last_lab_predictions", {})
 
 if preds:
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("📡 PHƯƠNG ÁN 1: RỐN CẦU TỤ")
-        st.success(f"🔥 3 Chạm Cao Điểm Nhất: [ {preds.get('pa1_high_txt')} ]")
-        st.error(f"❄️ 3 Chạm Thấp Điểm Nhất: [ {preds.get('pa1_low_txt')} ]")
-    with col2:
-        st.subheader("🎯 PHƯƠNG ÁN 2: LÕI ĐỘC QUYỀN")
-        st.success(f"🔥 3 Chạm Cao Điểm Nhất: [ {preds.get('pa2_high_txt')} ]")
-        st.error(f"❄️ 4 Chạm Thấp Điểm Nhất: [ {preds.get('pa2_low_txt')} ]")
-        
-    st.divider()
-    st.markdown("### 📦 DANH SÁCH 4 DÀN CHIẾN THUẬT 3 CHẠM KÉP GÁNH (21 CON KINH TẾ):")
+    # 🌟 DÀN 5: 0đ khan trên 5 ngày chưa về (Hiển thị trực diện làm màng lọc loại)
+    d5 = preds.get("d5_0đ_khan", [])
+    st.markdown(f"""<div class="box-vip"><span class="title-vip">🚨 5. DÀN CÁC DÂY 0 ĐIỂM TRÊN 5 NGÀY CHƯA VỀ (MÀNG LỌC LOẠI - Tổng số: {len(d5)} quân)</span><br>
+    <p class="text-vip">{"   -   ".join(d5) if d5 else "Kỳ này không có số đóng băng!"}</p></div>""", unsafe_allow_html=True)
+
+    # 🌟 DÀN 6: Dàn đa dây gây nhiễu loãng lực nổ (Hiển thị trực diện làm màng lọc loại)
+    d6 = preds.get("d6_overload", [])
+    st.markdown(f"""<div class="box-vip"><span class="title-vip">⚠️ 6. DÀN CÁC PHẦN TỬ ĐA DÂY GÂY NHIỄU SÓNG (MÀNG LỌC LOẠI - Tổng số: {len(d6)} quân)</span><br>
+    <p class="text-vip">{"   -   ".join(d6) if d6 else "Kỳ này không có số nhiễu!"}</p></div>""", unsafe_allow_html=True)
+
+    st.markdown("### 📦 CÁC DÀN ĐƠN DÂY ĐỘC NHẤT VÀ TRỤC BỆT MA TRẬN:")
 
     # 📦 DÀN 1
-    d1 = preds.get("d1_pa1_high", [])
-    with st.expander(f"📦 DÀN 1: PHƯƠNG ÁN 1 CAO ĐIỂM (Tổng số: {len(d1)} quân)"):
-        st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d1) if d1 else "Kỳ này trống số do chạm khuyết!"}</p></div>', unsafe_allow_html=True)
+    d1 = preds.get("d1_0đ_uni", [])
+    with st.expander(f"📦 1. DÀN CÁC DÂY 0 ĐIỂM ĐỘC NHẤT (Tổng số: {len(d1)} quân)"):
+        st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d1) if d1 else "Trống số!"}</p></div>', unsafe_allow_html=True)
 
     # 📦 DÀN 2
-    d2 = preds.get("d2_pa1_low", [])
-    with st.expander(f"📦 DÀN 2: PHƯƠNG ÁN 1 THẤP ĐIỂM (Tổng số: {len(d2)} quân)"):
-        st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d2) if d2 else "Kỳ này trống số!"}</p></div>', unsafe_allow_html=True)
+    d2 = preds.get("d2_1đ_uni", [])
+    with st.expander(f"📦 2. DÀN CÁC DÂY 1 ĐIỂM ĐỘC NHẤT (Tổng số: {len(d2)} quân)"):
+        st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d2) if d2 else "Trống số!"}</p></div>', unsafe_allow_html=True)
 
     # 📦 DÀN 3
-    d3 = preds.get("d3_pa2_high", [])
-    with st.expander(f"📦 DÀN 3: PHƯƠNG ÁN 2 CAO ĐIỂM (Tổng số: {len(d3)} quân)"):
-        st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d3) if d3 else "Kỳ này trống số!"}</p></div>', unsafe_allow_html=True)
+    d3 = preds.get("d3_2đ_uni", [])
+    with st.expander(f"📦 3. DÀN CÁC DÂY 2 ĐIỂM ĐỘC NHẤT (Tổng số: {len(d3)} quân)"):
+        st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d3) if d3 else "Trống số!"}</p></div>', unsafe_allow_html=True)
 
     # 📦 DÀN 4
-    d4 = preds.get("d4_pa2_low", [])
-    with st.expander(f"📦 DÀN 4: PHƯƠNG ÁN 2 THẤP ĐIỂM (Tổng số: {len(d4)} quân)"):
-        st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d4) if d4 else "Kỳ này trống số!"}</p></div>', unsafe_allow_html=True)
+    d4 = preds.get("d4_2đ_plus", [])
+    with st.expander(f"📦 4. DÀN TẬP HỢP CỦA CÁC DÂY TỪ 2 ĐIỂM TRỞ LÊN THÔ (Tổng số: {len(d4)} quân)"):
+        st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d4) if d4 else "Trống số!"}</p></div>', unsafe_allow_html=True)
 
 else:
-    st.info("Hệ thống đang trống. Vui lòng nạp kết quả thô để bốc đầu 3 bộ chạm băm nát nhà đài!")
+    st.info("Hệ thống phòng thí nghiệm đang trống. Hãy dán kết quả thô để bóc tách 6 phân lớp dây tinh khiết!")
