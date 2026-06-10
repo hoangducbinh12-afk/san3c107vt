@@ -6,8 +6,8 @@ import numpy as np
 import re
 import io
 
-# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V29.0 ---
-st.set_page_config(page_title="Matrix 3D - Tensor Purist V29.0", layout="wide")
+# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V30.1 ---
+st.set_page_config(page_title="Matrix 3D - Dual Sniper V30.1", layout="wide")
 TOTAL_POS = 107 
 
 st.markdown("""
@@ -16,22 +16,27 @@ st.markdown("""
     .stButton>button { width: 100%; border-radius: 6px; height: 3.5em; background-color: #161B26; color: #F0F4F8; border: 1px solid #2D3748; font-weight: bold; }
     .stButton>button:hover { border-color: #10B981; color: #10B981; }
     
-    .box-purist { background-color: #06020A; padding: 15px; border-radius: 12px; border: 2px dashed #3B82F6; margin-bottom: 15px; }
+    /* 🛠️ SWAP COLOR CSS: Dàn chính màu Đỏ, Dàn lót màu Xanh Dương */
+    .box-purist { background-color: #140406; padding: 15px; border-radius: 12px; border: 2px dashed #EF4444; margin-bottom: 15px; }
+    .box-lot { background-color: #030814; padding: 15px; border-radius: 12px; border: 2px dashed #3B82F6; margin-bottom: 15px; }
+    
     .box-cang3d { background-color: #05070B; padding: 12px; border-radius: 12px; border: 2px solid #A855F7; margin-bottom: 12px; }
     .box-vip { background-color: #020C08; padding: 12px; border-radius: 12px; border: 2px solid #10B981; margin-bottom: 12px; }
     .box-orange { background-color: #0F0902; padding: 12px; border-radius: 12px; border: 2px solid #F59E0B; margin-bottom: 12px; }
     
-    .title-purist { color: #3B82F6 !important; font-size: 18px !important; font-weight: 900 !important; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+    .title-purist { color: #EF4444 !important; font-size: 18px !important; font-weight: 900 !important; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+    .title-lot { color: #3B82F6 !important; font-size: 18px !important; font-weight: 900 !important; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
     .title-cang3d { color: #A855F7 !important; font-size: 15px !important; font-weight: 900 !important; }
     .title-vip { color: #10B981 !important; font-size: 15px !important; font-weight: 900 !important; }
     
-    .text-purist { color: #3B82F6 !important; font-size: 20px !important; font-weight: 900 !important; font-family: monospace; letter-spacing: 2px; }
+    .text-purist { color: #EF4444 !important; font-size: 20px !important; font-weight: 900 !important; font-family: monospace; letter-spacing: 2px; }
+    .text-lot { color: #3B82F6 !important; font-size: 20px !important; font-weight: 900 !important; font-family: monospace; letter-spacing: 2px; }
     .text-cang3d { color: #E2E8F0 !important; font-size: 14px !important; font-family: monospace; letter-spacing: 1px; word-wrap: break-word; line-height: 1.4; }
     .text-vip { color: #FFD700 !important; font-size: 16px !important; font-weight: 900 !important; font-family: monospace; letter-spacing: 2px; word-wrap: break-word; line-height: 1.4; }
     </style>
     """, unsafe_allow_html=True)
 
-# Khởi tạo ma trận phẳng nhị phân trực tiếp trên RAM máy chủ
+# Khởi tạo ma trận phẳng nhị phân trên RAM máy chủ
 if 'matrix_np' not in st.session_state:
     st.session_state['matrix_np'] = np.zeros((TOTAL_POS, TOTAL_POS, TOTAL_POS), dtype=np.int32)
 
@@ -94,7 +99,7 @@ def parse_vietnam_xsmb_format(raw_text):
     cang3c_23_list = [num[-3:] for num in all_27_components[:23] if len(num) >= 3]
     return digits_107, loto_27_list, cang3c_23_list
 
-# --- 3. ĐỘNG CƠ MA TRẬN PHÂN TÁCH SỢI DÂY TINH KHIẾT V29.0 ---
+# --- 3. ĐỘNG CƠ MA TRẬN PHÂN TÁCH SỢI DÂY TINH KHIẾT V30.1 ---
 def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     db = st.session_state['db_3d']
     old_matrix = st.session_state['matrix_np'] 
@@ -103,10 +108,11 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     
     hit_report = {"GĐB": gdb_val if gdb_val else "00"}
     
-    # 🛠️ ĐỒNG BỘ ĐỐI SOÁT TOÀN DIỆN 10 LOẠI DÀN (BỔ SUNG CỘT TINH KHIẾT LÊN ĐẦU)
+    # Đối soát lịch sử quân ăn liên kỳ
     if old_digits != "" and old_lab_preds:
         keys_mapping = {
-            "d0_purist": "Dàn Tinh Khiết (D2∩D7-Loại1,4,5,6)",
+            "d0_purist": "Dàn Tinh Khiết (Chính)",
+            "d0_lot": "Dàn Lót (Bảo Hiểm Bệt)",
             "d1_0đ_uni": "Dàn 1 (0đ Độc Nhất)",
             "d2_1đ_uni": "Dàn 2 (1đ Độc Nhất)",
             "d3_2đ_uni": "Dàn 3 (2đ Độc Nhất)",
@@ -168,18 +174,22 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
         if max_sc >= 2: d4_2đ_plus.append(num) 
         if total_lines > 15: d6_overload.append(num) 
 
-    # Động cơ quét ngược thời gian trích xuất lịch sử
+    # Động cơ quét ngược lịch sử trích xuất biên độ thời gian
     d5_0đ_khan = []
     d7_hist_5 = set()   
     d8_hist_10 = set()  
     d9_hist_15 = set()  
     
     hist_len = len(db["history"])
+    set_hom_qua = set()
     
     for index, h_day in enumerate(db["history"]):
         saved_c3c = h_day.get("Saved_3C_Real", [])
         clean_kep_ganh_day = [c for c in saved_c3c if c in KEP_GANH_SET]
         
+        if index == 0:
+            for num in clean_kep_ganh_day: set_hom_qua.add(num)
+            
         if index < 5:
             for num in clean_kep_ganh_day: d7_hist_5.add(num)
         if index < 10:
@@ -192,18 +202,21 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
             if num not in d7_hist_5 and num in d1_0đ_uni:
                 d5_0đ_khan.append(num)
 
-    # 🛠️ TOÁN CHIẾN THUẬT V29.0: LẬP DÀN TINH KHIẾT ĐỘC QUYỀN CỦA ĐẠI CA
-    # Quân trùng ở Dàn 7 và Dàn 2, loại bỏ toàn bộ Dàn 1, 4, 5, 6
+    # Lập hệ thống phân tách sniper chính lót
     set_d2 = set(d2_1đ_uni)
     set_d7 = set(d7_hist_5)
     dan_trung_2_7 = set_d2.intersection(set_d7)
     
-    set_loai = set(d1_0đ_uni).union(set(d4_2đ_plus)).union(set(d5_0đ_khan)).union(set(d6_overload))
-    d0_purist = dan_trung_2_7.difference(set_loai)
+    set_loai_tho = set(d1_0đ_uni).union(set(d4_2đ_plus)).union(set(d5_0đ_khan)).union(set(d6_overload))
+    dan_nen_goc = dan_trung_2_7.difference(set_loai_tho)
+    
+    d0_lot = dan_nen_goc.intersection(set_hom_qua)
+    d0_purist = dan_nen_goc.difference(set_hom_qua)
 
-    # Đóng gói két bảo mật RAM
+    # Đóng gói kết quả bảo mật RAM
     db["last_lab_predictions"] = {
         "d0_purist": sorted(list(d0_purist)),
+        "d0_lot": sorted(list(d0_lot)),
         "d1_0đ_uni": sorted(d1_0đ_uni),
         "d2_1đ_uni": sorted(d2_1đ_uni),
         "d3_2đ_uni": sorted(d3_2đ_uni),
@@ -219,21 +232,20 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     st.session_state['matrix_np'] = new_matrix
     db["last_digits"] = digits_107
     
-    # Găm mảng gốc kỳ này nuôi khung lịch sử
     hit_report["Saved_3C_Real"] = cang3c_23
     
     if old_digits != "" and old_lab_preds: 
         db["history"].insert(0, hit_report)
     else:
-        hit_report["Ghi chú"] = "⚙️ Khởi tạo ma trận Purify V29.0"
+        hit_report["Ghi chú"] = "⚙️ Khởi tạo ma trận Purify V30.1"
         db["history"].insert(0, hit_report)
 
 # --- 4. GIAO DIỆN ĐIỀU HÀNH CONTROL PANEL SIDEBAR ---
-st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - PURIST SNIPER v29.0</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - DUAL SNIPER v30.1</h2>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### 💾 HỆ THỐNG DỮ LIỆU TENSOR")
-    uploaded_file = st.file_uploader("Nạp tệp GZ Sao Lưu Ma Trận V29", type=['gz'])
+    uploaded_file = st.file_uploader("Nạp tệp GZ Sao Lưu Ma Trận V30", type=['gz'])
     
     if uploaded_file and st.button("📥 PHỤC HỒI BỘ NHỚ 3D"):
         try:
@@ -241,7 +253,7 @@ with st.sidebar:
                 payload = json.loads(f.read().decode("utf-8"))
                 st.session_state['db_3d'] = payload["db_3d"]
                 st.session_state['matrix_np'] = np.array(payload["matrix_raw"], dtype=np.int32)
-            st.success("Đã hồi sinh trạm bắn Sniper V29.0!")
+            st.success("Đã hồi sinh bộ nhớ phong thủy V30.1!")
             st.rerun()
         except Exception as e:
             st.error(f"Lỗi cấu trúc RAM nhị phân: {e}")
@@ -257,15 +269,15 @@ with st.sidebar:
             f.write(json_string.encode("utf-8"))
         
         st.download_button(
-            label="💾 XUẤX FILE NÉN TỐI ƯU (.JSON.GZ)", 
+            label="💾 XUẤT FILE NÉN TỐI ƯU (.JSON.GZ)", 
             data=gzip_buffer.getvalue(), 
-            file_name="matrix_3d_v290.json.gz",
+            file_name="matrix_3d_v301.json.gz",
             mime="application/gzip"
         )
         
     st.divider()
     st.markdown("### 📥 TRẠM NẠP KẾT QUẢ KỲ QUAY")
-    raw_input_text = st.text_area("Dán bảng giải thô chuẩn từ Web:", key="web_raw_field_v29", height=200)
+    raw_input_text = st.text_area("Dán bảng giải thô chuẩn từ Web:", key="web_raw_field_v30", height=200)
     
     if st.button("🔥 KHAI HỎA SNIPER TENSOR 3D", type="primary"):
         if raw_input_text:
@@ -273,7 +285,7 @@ with st.sidebar:
             if digits_107 and len(digits_107) == TOTAL_POS:
                 gdb_val = digits_107[3:5]
                 process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val)
-                st.toast("🔥 Lập dàn tinh khiết siêu nén thành công!", icon="🎯")
+                st.toast("🔥 Phân lập cấu trúc Đỏ (Chính) - Xanh (Lót) thành công!", icon="🎯")
                 st.rerun()
             else:
                 st.error("Lỗi cấu trúc giải thô 107 số!")
@@ -284,8 +296,8 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# --- 5. KHU VỰC BẢNG NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN (DÀN TINH KHIẾT ĐẨY LÊN ĐẦU) ---
-st.markdown("<h3><font color='#10B981'><b>📋 NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN CÁC PHÂN LỚP DÂY VÀ DÀN TINH KHIẾT</b></font></h3>", unsafe_allow_html=True)
+# --- 5. KHU VỰC BẢNG NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN (ĐỐI SOÁT ĐỔI MÀU THEO PHONG THỦY) ---
+st.markdown("<h3><font color='#10B981'><b>📋 NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN HỆ THỐNG SONG SÁT PLOT-COLOR</b></font></h3>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 1px solid #10B981; margin-top: -5px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
 hist_data = st.session_state['db_3d'].get("history", [])
@@ -298,18 +310,20 @@ if hist_data:
     df_hist = pd.DataFrame(display_history).fillna("0")
     cols = list(df_hist.columns)
     
-    # 🛠️ CẤU TRÚC ĐÈ: Đẩy cột dàn tinh khiết lên đầu tiên ngay sau GĐB!
     order_cols = [
-        "GĐB", "Dàn Tinh Khiết (D2∩D7-Loại1,4,5,6)", "Dàn 1 (0đ Độc Nhất)", "Dàn 2 (1đ Độc Nhất)", 
+        "GĐB", "Dàn Tinh Khiết (Chính)", "Dàn Lót (Bảo Hiểm Bệt)", "Dàn 1 (0đ Độc Nhất)", "Dàn 2 (1đ Độc Nhất)", 
         "Dàn 3 (2đ Độc Nhất)", "Dàn 4 (Dây >= 2đ)", "Dàn 5 (0đ Khan >5Ngày)", "Dàn 6 (Đa Dây Nhiễu)",
         "Dàn 7 (Đã Ra 5 Kỳ)", "Dàn 8 (Đã Ra 10 Kỳ)", "Dàn 9 (Đã Ra 15 Kỳ)"
     ]
     final_cols = [c for c in order_cols if c in cols] + [c for c in cols if c not in order_cols]
     
+    # 🛠️ SWAP COLOR TRONG BẢNG: Chính nền đỏ rực, Lót nền xanh dương dịu mát
     def highlight_wins(val):
         val_str = str(val)
         if "nháy" in val_str:
-            if "Tinh Khiết" in val_str or df_hist.columns[df_hist.isin([val]).any()].str.contains('Tinh Khiết').any():
+            if "Chính" in val_str:
+                return 'background-color: #3B0712; color: #EF4444; font-weight: 900; border: 1px solid #EF4444;'
+            elif "Lót" in val_str:
                 return 'background-color: #1E3A8A; color: #3B82F6; font-weight: 900; border: 1px solid #3B82F6;'
             return 'background-color: #1F2937; color: #10B981; font-weight: 900; border: 1px solid #10B981;'
         elif val_str == "0":
@@ -318,35 +332,40 @@ if hist_data:
 
     st.dataframe(df_hist[final_cols].style.map(highlight_wins), use_container_width=True, height=400)
 else:
-    st.info("Hệ thống ma trận Purist V29.0 đã sẵn sàng! Chờ kỳ sau khạc đối soát rực rỡ.")
+    st.info("Hệ thống Dual Sniper V30.1 đã lên RAM! Nạp kỳ tiếp theo để kích hoạt phông nền đối soát màu sắc mới.")
 
 st.divider()
 
-# --- 6. PHƠI BÀY CHI TIẾT ĐỦ ĐÚNG 10 LOẠI DÀN TRÊN WEB (TINH KHIẾT ĐẨY LÊN VIP ĐẦU) ---
-st.markdown("<h3><font color='#A855F7'><b>🔮 PHÂN LẬP SỐ CHI TIẾT KỲ NÀY - KHUNG ĐI TIỀN ĐỘC THỦ</b></font></h3>", unsafe_allow_html=True)
+# --- 6. PHƠI BÀY CHI TIẾT 11 LOẠI DÀN (MÀU ĐỎ CHÍNH & MÀU XANH LÓT) ---
+st.markdown("<h3><font color='#A855F7'><b>🔮 BẢNG PHÂN LẬP SỐ CHI TIẾT - DIỆT GIẶC NHÀ CÁI</b></font></h3>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 1px solid #A855F7; margin-top: -5px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
 preds = st.session_state['db_3d'].get("last_lab_predictions", {})
 
 if preds:
-    # 👑 🛠️ HIỂN THỊ DÀN TINH KHIẾT VIP LÊN ĐẦU TIỀN TUYẾN KỊCH KHUNG MÀN HÌNH
-    d0 = preds.get("d0_purist", [])
-    st.markdown(f"""<div class="box-purist"><span class="title-purist">🎯 DÀN TINH KHIẾT CHIẾN THUẬT (QUÂN TRÙNG D2 ∩ D7 - LOẠI SẠCH 1,4,5,6 - Tổng số: {len(d0)} quân)</span><br>
-    <p class="text-purist">{"   -   ".join(d0) if d0 else "Kỳ này không có số thỏa mãn dải lọc tinh khiết!"}</p></div>""", unsafe_allow_html=True)
+    # 🔴 🛠️ DÀN CHÍNH LÊN ĐÈN SẮC ĐỎ RỰC LỬA KHÔ MÁU
+    d0_purist = preds.get("d0_purist", [])
+    st.markdown(f"""<div class="box-purist"><span class="title-purist">🔥 DÀN TINH KHIẾT CHÍNH (ĐỎ SNIPER - ĐI TIỀN ĐẬM - Tổng số: {len(d0_purist)} quân)</span><br>
+    <p class="text-purist">{"   -   ".join(d0_purist) if d0_purist else "Kỳ này sạch bóng số chính!"}</p></div>""", unsafe_allow_html=True)
+
+    # 🔵 🛠️ DÀN LÓT LÊN ĐÈN SẮC XANH DƯƠNG ĐIỀM TĨNH BẢO HIỂM
+    d0_lot = preds.get("d0_lot", [])
+    st.markdown(f"""<div class="box-lot"><span class="title-lot">🛡️ DÀN LÓT BẢO HIỂM (XANH DƯƠNG - VÀO TIỀN NHẸ GIỮ MẠNG - Tổng số: {len(d0_lot)} quân)</span><br>
+    <p class="text-lot">{"   -   ".join(d0_lot) if d0_lot else "Kỳ này không dính quân lót bệt!"}</p></div>""", unsafe_allow_html=True)
 
     # 🌟 3 DÀN BIÊN ĐỘ THỜI GIAN NGƯỢC
     st.markdown("### ⏳ HỆ THỐNG DÀN QUÉT BIÊN ĐỘ THỜI GIAN NGƯỢC:")
     d7 = preds.get("d7_hist_5", [])
-    st.markdown(f"""<div class="box-orange"><span class="title-orange">⏳ 7. TẬP HỢP CÁC SỐ KÉP GÁNH ĐÃ VỀ TRONG 5 KỲ GẦN NHẤT (Tổng số: {len(d7)} quân)</span><br>
-    <p class="text-cang3d">{"   -   ".join(d7) if d7 else "Chưa tích lũy đủ dữ liệu kỳ!"}</p></div>""", unsafe_allow_html=True)
+    with st.expander(f"⏳ 7. TẬP HỢP CÁC SỐ KÉP GÁNH ĐÃ VỀ TRONG 5 KỲ GẦN NHẤT (Tổng số: {len(d7)} quân)"):
+        st.markdown(f'<div class="box-orange"><p class="text-cang3d">{"   -   ".join(d7) if d7 else "Trống số!"}</p></div>', unsafe_allow_html=True)
 
     d8 = preds.get("d8_hist_10", [])
-    st.markdown(f"""<div class="box-orange"><span class="title-orange">⏳ 8. TẬP HỢP CÁC SỐ KÉP GÁNH ĐÃ VỀ TRONG 10 KỲ GẦN NHẤT (Tổng số: {len(d8)} quân)</span><br>
-    <p class="text-cang3d">{"   -   ".join(d8) if d8 else "Chưa tích lũy đủ dữ liệu kỳ!"}</p></div>""", unsafe_allow_html=True)
+    with st.expander(f"⏳ 8. TẬP HỢP CÁC SỐ KÉP GÁNH ĐÃ VỀ TRONG 10 KỲ GẦN NHẤT (Tổng số: {len(d8)} quân)"):
+        st.markdown(f'<div class="box-orange"><p class="text-cang3d">{"   -   ".join(d8) if d8 else "Trống số!"}</p></div>', unsafe_allow_html=True)
 
     d9 = preds.get("d9_hist_15", [])
-    st.markdown(f"""<div class="box-orange"><span class="title-orange">⏳ 9. TẬP HỢP CÁC SỐ KÉP GÁNH ĐÃ VỀ TRONG 15 KỲ GẦN NHẤT (Tổng số: {len(d9)} quân)</span><br>
-    <p class="text-cang3d">{"   -   ".join(d9) if d9 else "Chưa tích lũy đủ dữ liệu kỳ!"}</p></div>""", unsafe_allow_html=True)
+    with st.expander(f"⏳ 9. TẬP HỢP CÁC SỐ KÉP GÁNH ĐÃ VỀ TRONG 15 KỲ GẦN NHẤT (Tổng số: {len(d9)} quân)"):
+        st.markdown(f'<div class="box-orange"><p class="text-cang3d">{"   -   ".join(d9) if d9 else "Trống số!"}</p></div>', unsafe_allow_html=True)
 
     # 🌟 CÁC DÀN MÀNG LỌC LOẠI TRỪ KHAN - NHIỄU
     st.markdown("### 🚨 HỆ THỐNG MÀNG LỌC LOẠI TRỪ KHAN VÀ NHIỄU SÓNG:")
@@ -381,4 +400,4 @@ if preds:
         st.markdown(f'<div class="box-cang3d"><p class="text-cang3d">{"   -   ".join(d4) if d4 else "Trống số!"}</p></div>', unsafe_allow_html=True)
 
 else:
-    st.info("Hệ thống phòng thí nghiệm đang trống. Hãy dán kết quả thô để kích hoạt 10 tầng ma trận tinh khiết!")
+    st.info("Hệ thống phòng thí nghiệm đang trống. Hãy dán kết quả thô để kích hoạt trận hình song sát phong thủy mới!")
