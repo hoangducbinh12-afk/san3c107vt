@@ -6,8 +6,8 @@ import numpy as np
 import re
 import io
 
-# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V28.1 ---
-st.set_page_config(page_title="Matrix 3D - Tensor Purify V28.1", layout="wide")
+# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V28.3 ---
+st.set_page_config(page_title="Matrix 3D - Tensor Resistor V28.3", layout="wide")
 TOTAL_POS = 107 
 
 st.markdown("""
@@ -92,7 +92,7 @@ def parse_vietnam_xsmb_format(raw_text):
     cang3c_23_list = [num[-3:] for num in all_27_components[:23] if len(num) >= 3]
     return digits_107, loto_27_list, cang3c_23_list
 
-# --- 3. ĐỘNG CƠ MA TRẬN PHÂN TÁCH SỢI DÂY TINH KHIẾT V28.1 ---
+# --- 3. ĐỘNG CƠ MA TRẬN PHÂN TÁCH SỢI DÂY TINH KHIẾT V28.3 ---
 def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     db = st.session_state['db_3d']
     old_matrix = st.session_state['matrix_np'] 
@@ -122,17 +122,23 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
             else:
                 hit_report[column_name] = "0"
                 
-    new_matrix = np.copy(old_matrix)
+    # 🛠️ ĐẠI PHẪU LOGIC ĐƯỜNG CẦU: Khởi tạo mảng phẳng mới tinh bằng 0
+    new_matrix = np.zeros((TOTAL_POS, TOTAL_POS, TOTAL_POS), dtype=np.int32)
+    
     if len(old_digits) == TOTAL_POS:
         for i in range(TOTAL_POS):
             for j in range(TOTAL_POS):
                 for k in range(TOTAL_POS):
                     num_past = old_digits[i] + old_digits[j] + old_digits[k]
+                    # ⚡ ĐIỀU KIỆN SỐNG CỦA ĐẠI CA: Ăn thì cộng tiếp gối đầu lên RAM, trượt phát là RESET thẳng tay về 0!
                     if num_past in cang3c_23 and num_past in KEP_GANH_SET: 
-                        new_matrix[i][j][k] += 1  
+                        new_matrix[i][j][k] = old_matrix[i][j][k] + 1
+                    else:
+                        new_matrix[i][j][k] = 0 # Trượt phát auto cắt điện về 0đ!
 
-    # 🛠️ ĐẠI PHẪU LOGIC ĐẾM DÂY: Chỉ lưu trữ những ô có dây phát lực (score > 0) để bóc tách độc quyền đơn sợi
-    wire_active_scores = {num: [] for num in KEP_GANH_280} 
+    # Kho định vị đỉnh lực nén động
+    wire_max_score = {num: 0 for num in KEP_GANH_280}
+    wire_total_lines = {num: 0 for num in KEP_GANH_280} 
 
     for i in range(TOTAL_POS):
         for j in range(TOTAL_POS):
@@ -140,8 +146,10 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                 num_cang = digits_107[i] + digits_107[j] + digits_107[k]
                 if num_cang in KEP_GANH_SET:
                     score = int(new_matrix[i][j][k])
-                    if score > 0: # Chỉ nhét những ô có điểm thực tế vào kho xét duyệt độc nhất
-                        wire_active_scores[num_cang].append(score)
+                    if score > 0:
+                        wire_total_lines[num_cang] += 1
+                        if score > wire_max_score[num_cang]:
+                            wire_max_score[num_cang] = score
 
     d1_0đ_uni = []   
     d2_1đ_uni = []   
@@ -150,24 +158,21 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     d6_overload = [] 
 
     for num in KEP_GANH_280:
-        active_scores = wire_active_scores[num]
-        total_active_wires = len(active_scores)
+        max_sc = wire_max_score[num]
+        total_lines = wire_total_lines[num]
         
-        # 🛠️ FIX CHUẨN ĐÉT TRẬN HÌNH ĐỘC NHẤT:
-        if total_active_wires == 0:
-            # Thằng nào không có một sợi dây phát lực nào lớn hơn 0 -> Chính là 0đ độc nhất tuyệt đối
-            d1_0đ_uni.append(num)
-        elif total_active_wires == 1:
-            # Chỉ có đúng duy nhất 1 ô hình thành dây lớn hơn 0 trên toàn cục ma trận
-            sc = active_scores[0]
-            if sc == 1: d2_1đ_uni.append(num)
-            elif sc == 2: d3_2đ_uni.append(num)
+        if max_sc == 0:
+            d1_0đ_uni.append(num)  
+        elif max_sc == 1:
+            d2_1đ_uni.append(num)  
+        elif max_sc == 2:
+            d3_2đ_uni.append(num)  
             
-        if any(sc >= 2 for sc in active_scores):
-            d4_2đ_plus.append(num)
+        if max_sc >= 2:
+            d4_2đ_plus.append(num) 
             
-        if total_active_wires > 15:
-            d6_overload.append(num)
+        if total_lines > 15:
+            d6_overload.append(num) 
 
     # Động cơ quét ngược thời gian trích xuất biên độ lịch sử
     d5_0đ_khan = []
@@ -193,7 +198,7 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
             if num not in d7_hist_5 and num in d1_0đ_uni:
                 d5_0đ_khan.append(num)
 
-    # Đóng gói chuẩn khít 9 tầng dữ liệu mới
+    # Đóng gói két bảo mật RAM
     db["last_lab_predictions"] = {
         "d1_0đ_uni": sorted(d1_0đ_uni),
         "d2_1đ_uni": sorted(d2_1đ_uni),
@@ -210,17 +215,17 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     st.session_state['matrix_np'] = new_matrix
     db["last_digits"] = digits_107
     
-    # Găm mảng gốc kỳ này nuôi khung lịch sử
+    # Găm mảng thực tế nuôi khung lịch sử
     hit_report["Saved_3C_Real"] = cang3c_23
     
     if old_digits != "" and old_lab_preds: 
         db["history"].insert(0, hit_report)
     else:
-        hit_report["Ghi chú"] = "⚙️ Khởi tạo ma trận Purify V28.1"
+        hit_report["Ghi chú"] = "⚙️ Khởi tạo ma trận Resistor V28.3"
         db["history"].insert(0, hit_report)
 
 # --- 4. GIAO DIỆN ĐIỀU HÀNH CONTROL PANEL SIDEBAR ---
-st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - PURIFY ULTRA v28.1</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - RESISTOR v28.3</h2>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### 💾 HỆ THỐNG DỮ LIỆU TENSOR")
@@ -232,7 +237,7 @@ with st.sidebar:
                 payload = json.loads(f.read().decode("utf-8"))
                 st.session_state['db_3d'] = payload["db_3d"]
                 st.session_state['matrix_np'] = np.array(payload["matrix_raw"], dtype=np.int32)
-            st.success("Đã hồi sinh trạm lọc biên độ V28.1!")
+            st.success("Đã hồi sinh trạm lọc biên độ V28.3!")
             st.rerun()
         except Exception as e:
             st.error(f"Lỗi cấu trúc RAM: {e}")
@@ -250,7 +255,7 @@ with st.sidebar:
         st.download_button(
             label="💾 XUẤT FILE NÉN TỐI ƯU (.JSON.GZ)", 
             data=gzip_buffer.getvalue(), 
-            file_name="matrix_3d_v281.json.gz",
+            file_name="matrix_3d_v283.json.gz",
             mime="application/gzip"
         )
         
@@ -264,7 +269,7 @@ with st.sidebar:
             if digits_107 and len(digits_107) == TOTAL_POS:
                 gdb_val = digits_107[3:5]
                 process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val)
-                st.toast("🔥 Khai thông 3 dàn độc nhất thành công mỹ mãn!", icon="⚡")
+                st.toast("🔥 Áp dụng luật Reset dòng điện thành công!", icon="⚡")
                 st.rerun()
             else:
                 st.error("Lỗi cấu trúc giải thô 107 số!")
@@ -306,7 +311,7 @@ if hist_data:
 
     st.dataframe(df_hist[final_cols].style.map(highlight_wins), use_container_width=True, height=400)
 else:
-    st.info("Hệ thống ma trận biên độ V28.1 đã phục hồi! Sẵn sàng khạc báo cáo quân ăn rực rỡ.")
+    st.info("Hệ thống ma trận Resistor V28.3 đã sẵn sàng! Chờ kỳ sau khạc số đối soát.")
 
 st.divider()
 
