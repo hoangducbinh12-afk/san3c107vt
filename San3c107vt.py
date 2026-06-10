@@ -6,8 +6,8 @@ import numpy as np
 import re
 import io
 
-# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V32.1 ---
-st.set_page_config(page_title="Matrix 3D - Tensor 12 Nukes V32.1", layout="wide")
+# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V32.2 ---
+st.set_page_config(page_title="Matrix 3D - Tensor 12 Nukes V32.2", layout="wide")
 TOTAL_POS = 107 
 
 st.markdown("""
@@ -16,7 +16,6 @@ st.markdown("""
     .stButton>button { width: 100%; border-radius: 6px; height: 3.5em; background-color: #161B26; color: #F0F4F8; border: 1px solid #2D3748; font-weight: bold; }
     .stButton>button:hover { border-color: #10B981; color: #10B981; }
     
-    /* 🛠️ THIẾT KẾ BOX VIP CHO 2 DÀN 6 CON CỰC TINH ANH */
     .box-top6 { background-color: #140406; padding: 20px; border-radius: 12px; border: 3px solid #EF4444; margin-bottom: 20px; text-align: center; }
     .box-next6 { background-color: #030814; padding: 20px; border-radius: 12px; border: 3px solid #3B82F6; margin-bottom: 20px; text-align: center; }
     
@@ -95,7 +94,7 @@ def parse_vietnam_xsmb_format(raw_text):
     cang3c_23_list = [num[-3:] for num in all_27_components[:23] if len(num) >= 3]
     return digits_107, loto_27_list, cang3c_23_list
 
-# --- 3. ĐỘNG CƠ MA TRẬN VÀ CHẤM ĐIỂM SỢI DÂY CỘNG HƯỞNG ĐA TẦNG V32.1 ---
+# --- 3. ĐỘNG CƠ MA TRẬN VÀ CHẤM ĐIỂM SỢI DÂY CỘNG HƯỞNG ĐA TẦNG V32.2 ---
 def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     db = st.session_state['db_3d']
     old_matrix = st.session_state['matrix_np'] 
@@ -120,7 +119,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     hit_report = {"GĐB": gdb_val if gdb_val else "00"}
     cang3c_today_kep_ganh = [c for c in cang3c_23 if c in KEP_GANH_SET]
 
-    # Ghi nhớ vết bánh xe chu kỳ 1 tầng và 2 tầng
     if last_round_nums:
         for A in last_round_nums:
             if A not in trans_mem: trans_mem[A] = {}
@@ -133,7 +131,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
 
     for num in cang3c_today_kep_ganh: luy_ke[num] += 1
 
-    # Ma trận tích lũy Resistor tự động reset về 0 nếu đứt mạch dây
     new_matrix = np.zeros((TOTAL_POS, TOTAL_POS, TOTAL_POS), dtype=np.int32)
     if len(old_digits) == TOTAL_POS:
         for i in range(TOTAL_POS):
@@ -143,7 +140,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                     if num_past in cang3c_23 and num_past in KEP_GANH_SET: 
                         new_matrix[i][j][k] = old_matrix[i][j][k] + 1
 
-    # Định vị đỉnh lực nén ma trận
     wire_max_score = {num: 0 for num in KEP_GANH_280}
     wire_total_lines = {num: 0 for num in KEP_GANH_280} 
 
@@ -168,7 +164,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
         if max_sc >= 2: d4_2đ_plus.append(num) 
         if total_lines > 15: d6_overload.append(num) 
 
-    # Quét lịch sử biên độ thời gian
     d5_0đ_khan = []
     d7_hist_5, d8_hist_10, d9_hist_15 = set(), set(), set()
     
@@ -186,7 +181,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
         for num in KEP_GANH_280:
             if num not in d7_hist_5 and num in d1_0đ_uni: d5_0đ_khan.append(num)
 
-    # Chấm điểm nền gối đầu T-1
     scores_nền = {num: 0 for num in KEP_GANH_280}
     for num in KEP_GANH_280:
         if num in d2_1đ_uni: scores_nền[num] += 9
@@ -199,7 +193,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
         if num in d3_2đ_uni or num in d4_2đ_plus: scores_nền[num] += 2
         scores_nền[num] += luy_ke[num] 
 
-    # Thuật toán tính giao thoa sóng cộng hưởng đa kỳ cho Kỳ T ngày mai
     predicted_set_by_t1 = set()
     for A in cang3c_today_kep_ganh:
         for B in trans_mem.get(A, {}).keys():
@@ -236,20 +229,16 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
             
         predicted_scores_kỳ_t[num] = pred_sc
 
-    # 🛠️ 🛠️ ĐIỂM CHẠM VẬT LÝ V32.1: SẮP XẾP BẢNG ĐIỂM TOÀN CỤC ĐỂ TRÍCH XUẤT ĐÚNG 2 KHÚC 6 CON
     sorted_all_numbers = sorted(predicted_scores_kỳ_t.items(), key=lambda x: x[1], reverse=True)
     
-    # Bốc chuẩn khít khao 2 dàn, mỗi dàn đúng 6 hạt nhân độc quyền
     top_6_highest = [item[0] for item in sorted_all_numbers[:6]]
     next_6_highest = [item[0] for item in sorted_all_numbers[6:12]]
 
-    # Đóng gói kết quả bảo mật lên RAM
     db["last_lab_predictions"] = {
         "top_6_highest": top_6_highest,
         "next_6_highest": next_6_highest
     }
 
-    # Đóng gói dữ liệu hiển thị Bảng Điểm Động Lực Học Master
     score_board_data = []
     for num in KEP_GANH_280:
         if scores_nền[num] > 0 or link_scores_log[num] > 0 or resonance_scores_log[num] > 0:
@@ -263,7 +252,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
             })
     db["last_score_board"] = sorted(score_board_data, key=lambda x: x["TỔNG ĐIỂM DỰ ĐOÁN KỲ T"], reverse=True)[:20]
 
-    # Gối đầu chu kỳ liên kỳ tiến lên
     db["prev_round_kep_ganh"] = last_round_nums
     db["current_round_kep_ganh"] = cang3c_today_kep_ganh
     
@@ -271,9 +259,7 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     db["last_digits"] = digits_107
     hit_report["Saved_3C_Real"] = cang3c_23
     
-    # Nhật ký lưu trữ gối đầu sạch sẽ
     if old_digits != "" and old_lab_preds:
-        # Đối soát quân ăn thực tế cho 2 loại dàn mới tinh ngay đầu bảng
         matched_top6 = [n for n in old_lab_preds.get("top_6_highest", []) if n in cang3c_23]
         matched_next6 = [n for n in old_lab_preds.get("next_6_highest", []) if n in cang3c_23]
         
@@ -281,11 +267,11 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
         hit_report["Dàn 6 Con Điểm Cao Tiếp Theo"] = f"{len(matched_next6)} nháy ({', '.join(matched_next6)})" if len(matched_next6) > 0 else "0"
         db["history"].insert(0, hit_report)
     else:
-        hit_report["Ghi chú"] = "⚙️ Khởi tạo cấu trúc 12 hạt nhân V32.1"
+        hit_report["Ghi chú"] = "⚙️ Khởi tạo cấu trúc 12 hạt nhân V32.2"
         db["history"].insert(0, hit_report)
 
 # --- 4. GIAO DIỆN ĐIỀU HÀNH CONTROL PANEL SIDEBAR ---
-st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - 12 NUKES ENGINE v32.1</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - 12 NUKES ENGINE v32.2</h2>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### 💾 HỆ THỐNG DỮ LIỆU TENSOR")
@@ -297,7 +283,7 @@ with st.sidebar:
                 payload = json.loads(f.read().decode("utf-8"))
                 st.session_state['db_3d'] = payload["db_3d"]
                 st.session_state['matrix_np'] = np.array(payload["matrix_raw"], dtype=np.int32)
-            st.success("Đã kích hoạt cỗ máy 12 hạt nhân V32.1!")
+            st.success("Đã kích hoạt cỗ máy V32.2 an toàn!")
             st.rerun()
         except Exception as e: st.error(f"Lỗi cấu trúc RAM nhị phân: {e}")
             
@@ -309,7 +295,7 @@ with st.sidebar:
         json_string = json.dumps(export_pack)
         gzip_buffer = io.BytesIO()
         with gzip.open(gzip_buffer, "wb", compresslevel=9) as f: f.write(json_string.encode("utf-8"))
-        st.download_button(label="💾 XUẤT FILE NÉN (.JSON.GZ)", data=gzip_buffer.getvalue(), file_name="matrix_3d_v321.json.gz", mime="application/gzip")
+        st.download_button(label="💾 XUẤT FILE NÉN (.JSON.GZ)", data=gzip_buffer.getvalue(), file_name="matrix_3d_v322.json.gz", mime="application/gzip")
         
     st.divider()
     st.markdown("### 📥 TRẠM NẠP KẾT QUẢ KỲ QUAY")
@@ -321,7 +307,7 @@ with st.sidebar:
             if digits_107 and len(digits_107) == TOTAL_POS:
                 gdb_val = digits_107[3:5]
                 process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val)
-                st.toast("🔥 Trích xuất chuẩn khít 12 siêu hạt nhân!", icon="🎯")
+                st.toast("🔥 Cập nhật bảng điểm cơ khí an toàn thành công!", icon="🎯")
                 st.rerun()
             else: st.error("Lỗi cấu trúc giải thô 107 số!")
         else: st.warning("Ô nhập trống kìa đại ca!")
@@ -337,24 +323,22 @@ st.markdown("<hr style='border: 1px solid #A855F7; margin-top: -5px; margin-bott
 preds = st.session_state['db_3d'].get("last_lab_predictions", {})
 
 if preds:
-    # 🔴 🛠️ KHÚC 1: DÀN CHÍNH 6 CON ĐIỂM CAO NHẤT
     top6 = preds.get("top_6_highest", [])
     st.markdown(f"""<div class="box-top6"><span class="title-top6">🔥 DÀN 6 CON ĐIỂM CAO NHẤT (ĐỎ SNIPER - ĐI TIỀN ĐẬM)</span><br>
     <p class="text-top6">{"   -   ".join(top6) if top6 else "Đang tính toán..."}</p></div>""", unsafe_allow_html=True)
 
-    # 🔵 🛠️ KHÚC 2: DÀN LÓT 6 CON ĐIỂM CAO TIẾP THEO
     next6 = preds.get("next_6_highest", [])
     st.markdown(f"""<div class="box-next6"><span class="title-next6">🛡️ DÀN 6 CON ĐIỂM CAO TIẾP THEO (XANH BẢO HIỂM - ĐÁNH NHẸ TAY)</span><br>
     <p class="text-next6">{"   -   ".join(next6) if next6 else "Đang tính toán..."}</p></div>""", unsafe_allow_html=True)
 
     st.divider()
     
-    # BẢNG ĐIỂM ĐỘNG LỰC HỌC MASTER HIỂN THỊ ĐẰNG SAU ĐỂ ĐỐI SOÁT LÝ DO LÊN HẠNG
+    # 🛠️ FIX CHÍ MẠNG DÒNG 357: Dẹp bỏ .background_gradient, dùng style nền mộc của Streamlit tự động đổ bóng
     st.markdown("<h3><font color='#3B82F6'><b>📊 BẢNG ĐIỂM ĐỘNG LỰC HỌC TENSOR - TOP 20 HẠT NHÂN CHU KỲ T</b></font></h3>", unsafe_allow_html=True)
     score_data = st.session_state['db_3d'].get("last_score_board", [])
     if score_data:
         df_score = pd.DataFrame(score_data)
-        st.dataframe(df_score.style.background_gradient(subset=["TỔNG ĐIỂM DỰ ĐOÁN KỲ T"], cmap="Reds"), use_container_width=True)
+        st.dataframe(df_score, use_container_width=True) # Sử dụng bảng phẳng mộc, loại bỏ hoàn toàn gánh nặng thư viện ngoài
 
 st.divider()
 
@@ -366,14 +350,12 @@ hist_data = st.session_state['db_3d'].get("history", [])
 if hist_data:
     display_history = []
     for h in hist_data:
-        # Lọc sạch rác chỉ giữ lại GĐB và 2 dàn đối soát tối thượng mới của đại ca
         cleaned_h = {
             "GĐB": h.get("GĐB", "00"),
             "Dàn 6 Con Điểm Cao Nhất": h.get("Dàn 6 Con Điểm Cao Nhất", "0"),
             "Dàn 6 Con Điểm Cao Tiếp Theo": h.get("Dàn 6 Con Điểm Cao Tiếp Theo", "0"),
             "Ghi chú": h.get("Ghi chú", "")
         }
-        # Nếu là dòng khởi tạo thì giữ lại ghi chú
         if "Khởi tạo" in str(h.get("Ghi chú", "")): cleaned_h["Ghi chú"] = h["Ghi chú"]
         display_history.append(cleaned_h)
         
