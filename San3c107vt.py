@@ -6,8 +6,8 @@ import numpy as np
 import re
 import io
 
-# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V27.3 ---
-st.set_page_config(page_title="Matrix 3D - Tensor Purify V27.3", layout="wide")
+# --- 1. CẤU HÌNH GIAO DIỆN PREMIUM LAB-TESTING V27.4 ---
+st.set_page_config(page_title="Matrix 3D - Tensor Purify V27.4", layout="wide")
 TOTAL_POS = 107 
 
 st.markdown("""
@@ -90,7 +90,7 @@ def parse_vietnam_xsmb_format(raw_text):
     cang3c_23_list = [num[-3:] for num in all_27_components[:23] if len(num) >= 3]
     return digits_107, loto_27_list, cang3c_23_list
 
-# --- 3. ĐỘNG CƠ MA TRẬN PHÂN TÁCH SỢI DÂY TINH KHIẾT V27.3 ---
+# --- 3. ĐỘNG CƠ MA TRẬN PHÂN TÁCH SỢI DÂY TINH KHIẾT V27.4 ---
 def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     db = st.session_state['db_3d']
     old_matrix = st.session_state['matrix_np'] 
@@ -99,7 +99,7 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     
     hit_report = {"GĐB": gdb_val if gdb_val else "00"}
     
-    # Đối soát 6 loại dàn chuẩn xác theo mạch lưu trữ gối đầu
+    # Đối soát lịch sử quân ăn của 6 loại dàn phân lập dây tinh khiết
     if old_digits != "" and old_lab_preds:
         keys_mapping = {
             "d1_0đ_uni": "Dàn 1 (0đ Độc Nhất)",
@@ -118,19 +118,21 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
             else:
                 hit_report[column_name] = "0"
                 
-    new_matrix = np.zeros((TOTAL_POS, TOTAL_POS, TOTAL_POS), dtype=np.int32)
+    # 🛠️ ĐẠI PHẪU TÍCH LŨY DÂY LUỸ TIẾN: Lấy trực tiếp mảng cũ làm nền móng để dồn điểm gối đầu liên kỳ
+    new_matrix = np.copy(old_matrix)
+    
     if len(old_digits) == TOTAL_POS:
         for i in range(TOTAL_POS):
             for j in range(TOTAL_POS):
                 for k in range(TOTAL_POS):
                     num_past = old_digits[i] + old_digits[j] + old_digits[k]
-                    # Thước ngắm tối cao 280 con chặn họng ma trận
+                    # Thước ngắm 280 con găm chặt điều kiện phát lực dây
                     if num_past in cang3c_23 and num_past in KEP_GANH_SET: 
-                        new_matrix[i][j][k] = old_matrix[i][j][k] + 1
+                        new_matrix[i][j][k] += 1  # Cộng dồn lũy tiến thực tế lên các nút thắt dây hình thành
 
-    # 🛠️ SỬA LỖI ĐẾM SỢI DÂY: Chỉ lưu trữ các điểm score thực tế của các ô có kết nối hình thành số
+    # Kho đếm sợi và điểm dây cho từng quân số
     wire_score_registry = {num: [] for num in KEP_GANH_280}
-    wire_active_count = {num: 0 for num in KEP_GANH_280} # Đếm tổng số sợi có dây thực tế
+    wire_active_count = {num: 0 for num in KEP_GANH_280} 
 
     for i in range(TOTAL_POS):
         for j in range(TOTAL_POS):
@@ -139,7 +141,6 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                 if num_cang in KEP_GANH_SET:
                     score = int(new_matrix[i][j][k])
                     wire_active_count[num_cang] += 1
-                    # Chỉ nhét vào kho đối soát độc nhất nếu sợi dây này có phát lực thực tế
                     wire_score_registry[num_cang].append(score)
 
     d1_0đ_uni = []   
@@ -154,19 +155,16 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
         
         if total_active_wires == 0: continue
         
-        # 🛠️ BIẾN ĐỔI LOGIC ĐỘC NHẤT CHUẨN XÁC: 
-        # Một con số được gọi là có dây 0đ, 1đ, 2đ độc nhất khi TẤT CẢ các sợi hình thành nên nó đều bằng đúng giá trị đó!
+        # Lọc Độc Nhất đơn lớp: TẤT CẢ các sợi hình thành của con số này đều đồng nhất ở cùng 1 mức điểm
         if len(set(score_list)) == 1:
             sc = score_list[0]
             if sc == 0: d1_0đ_uni.append(num)
             elif sc == 1: d2_1đ_uni.append(num)
             elif sc == 2: d3_2đ_uni.append(num)
             
-        # Dàn 4: Dây từ 2đ trở lên thô (Có ít nhất 1 sợi đạt >= 2đ)
         if any(sc >= 2 for sc in score_list):
             d4_2đ_plus.append(num)
             
-        # Dàn 6: Đa dây gây nhiễu loãng lực nổ (Tổng số sợi hội tụ vượt mốc 15)
         if total_active_wires > 15:
             d6_overload.append(num)
 
@@ -184,7 +182,7 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
                 if num in wire_score_registry and all(sc == 0 for sc in wire_score_registry[num]):
                     d5_0đ_khan.append(num)
 
-    # Đóng gói chuẩn khít 6 tầng dự đoán mới lên két bảo mật RAM
+    # Đóng gói chuẩn khít dữ liệu lên két bảo mật RAM
     db["last_lab_predictions"] = {
         "d1_0đ_uni": sorted(d1_0đ_uni),
         "d2_1đ_uni": sorted(d2_1đ_uni),
@@ -197,17 +195,17 @@ def process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val):
     st.session_state['matrix_np'] = new_matrix
     db["last_digits"] = digits_107
     
-    # Găm mảng thực tế để nuôi thuật toán đếm ngày khan dàn 5
+    # Găm mảng thực tế nuôi thuật toán đếm ngày khan
     hit_report["Saved_3C_Real"] = cang3c_23
     
     if old_digits != "" and old_lab_preds: 
         db["history"].insert(0, hit_report)
     else:
-        hit_report["Ghi chú"] = "⚙️ Khởi tạo ma trận Purify V27.3"
+        hit_report["Ghi chú"] = "⚙️ Khởi tạo ma trận Purify V27.4"
         db["history"].insert(0, hit_report)
 
 # --- 4. GIAO DIỆN ĐIỀU HÀNH CONTROL PANEL SIDEBAR ---
-st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - PURIFY PRO v27.3</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #E2E8F0; font-weight: bold;'>⚡ TENSOR MATRIX 3D - PURIFY PRO v27.4</h2>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### 💾 HỆ THỐNG DỮ LIỆU TENSOR")
@@ -219,7 +217,7 @@ with st.sidebar:
                 payload = json.loads(f.read().decode("utf-8"))
                 st.session_state['db_3d'] = payload["db_3d"]
                 st.session_state['matrix_np'] = np.array(payload["matrix_raw"], dtype=np.int32)
-            st.success("Đã hồi sinh trạm lọc siêu đặc Purify V27.3!")
+            st.success("Đã hồi sinh trạm lọc siêu đặc Purify V27.4!")
             st.rerun()
         except Exception as e:
             st.error(f"Lỗi cấu trúc RAM nhị phân: {e}")
@@ -237,7 +235,7 @@ with st.sidebar:
         st.download_button(
             label="💾 XUẤT FILE NÉN TỐI ƯU (.JSON.GZ)", 
             data=gzip_buffer.getvalue(), 
-            file_name="matrix_3d_v273.json.gz",
+            file_name="matrix_3d_v274.json.gz",
             mime="application/gzip"
         )
         
@@ -251,7 +249,7 @@ with st.sidebar:
             if digits_107 and len(digits_107) == TOTAL_POS:
                 gdb_val = digits_107[3:5]
                 process_matrix_3d(digits_107, loto_27, cang3c_23, gdb_val)
-                st.toast("🔥 Khai thông 3 dàn độc nhất thành công!", icon="⚡")
+                st.toast("🔥 Khai thông trọn bộ 3 phân lớp độc nhất liên kỳ!", icon="⚡")
                 st.rerun()
             else:
                 st.error("Lỗi cấu trúc giải thô 107 số!")
@@ -262,7 +260,7 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# --- 5. KHU VỰC BẢNG NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN (ĐƯA LÊN ĐẦU TIỀN TUYẾN) ---
+# --- 5. KHU VỰC BẢNG NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN ---
 st.markdown("<h3><font color='#10B981'><b>📋 NHẬT KÝ ĐỐI SOÁT LIÊN HOÀN 6 DÀN PHÂN LỚP DÂY CÔ ĐỘC</b></font></h3>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 1px solid #10B981; margin-top: -5px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
@@ -289,7 +287,7 @@ if hist_data:
 
     st.dataframe(df_hist[final_cols].style.map(highlight_wins), use_container_width=True, height=400)
 else:
-    st.info("Hệ thống ma trận siêu đặc V27.3 đã nạp RAM! Hãy dán giải kỳ sau để xuất bản đối soát quân ăn.")
+    st.info("Hệ thống ma trận siêu đặc V27.4 đã nạp RAM! Hãy dán giải kỳ sau để xuất bản đối soát quân ăn.")
 
 st.divider()
 
@@ -307,7 +305,7 @@ if preds:
 
     # 🌟 DÀN 6: Dàn đa dây gây nhiễu loãng lực nổ
     d6 = preds.get("d6_overload", [])
-    st.markdown(f"""<div class="box-vip"><span class="title-vip">⚠️ 6. DÀN CÁC PHẦN TỬ ĐA DÂY GÂY NHIỄU SÓNG (MÀNG LỌC LOẠI - Tổng số: {len(d6)} quân)</span><br>
+    st.markdown(f"""<div class="box-vip"><span class="title-vip">⚠️ 6. DÀN CÁC PHẦT TỬ ĐA DÂY GÂY NHIỄU SÓNG (MÀNG LỌC LOẠI - Tổng số: {len(d6)} quân)</span><br>
     <p class="text-vip">{"   -   ".join(d6) if d6 else "Kỳ này không có số nhiễu!"}</p></div>""", unsafe_allow_html=True)
 
     st.markdown("### 📦 CÁC DÀN ĐƠN DÂY ĐỘC NHẤT VÀ TRỤC BỆT MA TRẬN:")
